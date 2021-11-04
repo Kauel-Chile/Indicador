@@ -327,7 +327,7 @@ class Photo:
 
     @property
     def geo_polygon(self):
-        if not hasattr(self, '_polygon'):
+        if not hasattr(self, '_geo_polygon'):
             polygon = [self.corners + self.corners[0:1]]
             self._geo_polygon = Feature(geometry=Polygon(polygon))
         return self._geo_polygon
@@ -375,7 +375,7 @@ class Flight:
         self.data = data
         self.photos = sorted(photos, key=lambda x: x.timestamp)
 
-    def draw_not_covered(self):
+    def draw_not_covered_kml(self):
         lines = []
         for line in self.data:
             lines += line['duct'].not_covered.geometry.coordinates
@@ -406,6 +406,30 @@ class Flight:
 
         return segments
 
+    def draw_not_covered(self):
+        lines = []
+
+        # Descompone multilinestrings en una lista de linestrings
+        # de todos los ductos
+        for line in self.data:
+            lines += line['duct'].not_covered.geometry.coordinates
+
+        # Para cada segmento no cubierto, gener un punto al inicio
+        # y otro al final
+        segments = []
+        for line in lines:
+            segments.append(Feature(geometry=Point(line[0])))
+            segments.append(Feature(geometry=LineString(line)))
+            segments.append(Feature(geometry=Point(line[-1])))
+
+        return segments
+
+    def draw_photos(self):
+        features = []
+        for photo in self.photos:
+            features.append(photo.geo_polygon)
+        return features
+
     def kml(self, filename):
         if self.photos[0].timestamp.date() == self.photos[-1].timestamp.date():
             name = f'Cobertura del {self.photos[0].timestamp.date()}'
@@ -435,7 +459,7 @@ class Flight:
                     {
                         'name': 'Puntos no cubiertos',
                         'open': 0,
-                        'Placemark': self.draw_not_covered()
+                        'Placemark': self.draw_not_covered_kml()
                     },
                 ]
             }
@@ -523,7 +547,7 @@ class Flight:
         ax.set_ylabel('Cantidad de imágenes')
         ax.grid()
 
-    def plot(self, date = None, figsize: tuple = (16, 6)):
+    def plot(self, date=None, figsize: tuple = (16, 6)):
         fig = plt.figure(constrained_layout=True, figsize=figsize)
         subfigs = fig.subfigures(1, 2, wspace=0.07, width_ratios=[2.5, 1])
         if date != None:
