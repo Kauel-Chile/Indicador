@@ -469,7 +469,7 @@ class Flight:
         total_covered = 0
         total_length = 0
 
-        for place in [p for p in self.data if p['optional'] == False]:
+        for place in [p for p in self.data if 'optional' not in p.keys() or p['optional'] == False]:
             duct = place['duct']
             total_covered += duct.length * duct.covered_pctg / 100
             total_length += duct.length
@@ -477,7 +477,7 @@ class Flight:
 
         print('\tTotal\t: {:.2f}%'.format(100*total_covered/total_length))
 
-        for place in [p for p in self.data if p['optional'] == True]:
+        for place in [p for p in self.data if 'optional' in p.keys() and p['optional'] == True]:
             duct = place['duct']
             total_covered += duct.length * duct.covered_pctg / 100
             total_length += duct.length
@@ -508,7 +508,7 @@ class Flight:
 
     def make_box_plot(self, ax):
         tmp = {place['duct'].name: [ph.ground_height for ph in place['photos']]
-               for place in self.data if place['optional'] == False}
+               for place in self.data if 'optional' not in place.keys() or place['optional'] == False}
         ax.boxplot(list(tmp.values()), labels=list(tmp.keys()))
         ax.set_title('Distribución de alturas')
         ax.set_ylabel('Altura [m]')
@@ -523,10 +523,13 @@ class Flight:
         ax.set_ylabel('Cantidad de imágenes')
         ax.grid()
 
-    def plot(self, date, figsize: tuple = (16, 6)):
+    def plot(self, date = None, figsize: tuple = (16, 6)):
         fig = plt.figure(constrained_layout=True, figsize=figsize)
         subfigs = fig.subfigures(1, 2, wspace=0.07, width_ratios=[2.5, 1])
-        fig.suptitle(f'Perfil de altura vuelo {date}', fontsize=16)
+        if date != None:
+            fig.suptitle(f'Perfil de altura vuelo {date}', fontsize=16)
+        else:
+            fig.suptitle('Perfil de altura', fontsize=16)
 
         ax11 = subfigs[0].subplots(1, 1)
         (ax21, ax22) = subfigs[1].subplots(2, 1)
